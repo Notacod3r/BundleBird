@@ -425,7 +425,7 @@
         function loadLocal() {
             try {
                 const s = JSON.parse(localStorage.getItem('BundleBirdV1'));
-                if (s) state = { ...state, ...s };
+                if (s) state = { ...state, ...s, bundleMode: '1000', bundleSize: 1000 };
             } catch (e) {}
         }
 
