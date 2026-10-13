@@ -11,23 +11,23 @@
     
     <style>
         /* Modern, native way to stop bounce without breaking touch hitboxes */
-          html, body {
+        html, body {
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
             overscroll-behavior: none;
-          }
+        }
           
-          /* Handle the notch spacing natively */
-          body > div:first-of-type {
+        /* Handle the notch spacing natively */
+        body > div:first-of-type {
             width: 100%;
             height: 100%;
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
             box-sizing: border-box;
-          }
+        }
     </style>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -239,6 +239,7 @@
             <div class="flex items-center justify-between px-1">
                 <span class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--text-muted)">Bundle Size</span>
                 <div class="inline-flex p-1 rounded-2xl segmented-control">
+                    <!-- Defaulted to 1000 visually here -->
                     <button id="btnBundle1000" data-b="1000" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition shadow-sm border border-[var(--border-hairline)] bg-white dark:bg-[#2A2B30] text-black dark:text-white">1,000</button>
                     <button id="btnBundle800" data-b="800" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400">800</button>
                     <button id="btnBundleCustom" data-b="custom" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400">Custom</button>
@@ -397,6 +398,7 @@
         const $ = id => document.getElementById(id);
         
         // --- Core Application State ---
+        // Defaulting entirely to 1000.
         let state = {
             theme: 'light',
             mode: 'SLE',
@@ -416,13 +418,13 @@
         let lastTargetSLE = 0;
         let undoWalletSnap = null;
 
-        // --- Persistence ---
+        // --- Persistence (New LocalStorage Key to force wipe old data) ---
         function saveLocal() {
-            try { localStorage.setItem('leonePayV10', JSON.stringify(state)); } catch (e) {}
+            try { localStorage.setItem('BundleBirdV1', JSON.stringify(state)); } catch (e) {}
         }
         function loadLocal() {
             try {
-                const s = JSON.parse(localStorage.getItem('leonePayV10'));
+                const s = JSON.parse(localStorage.getItem('BundleBirdV1'));
                 if (s) state = { ...state, ...s };
             } catch (e) {}
         }
@@ -445,8 +447,7 @@
             const curVal = parseFloat($('amtInput').value);
             if (curVal > 0) {
                 tally.push(curVal);
-                $('amtInput').value = '';
-                $('amtInput').focus();
+                $('amtInput').value = '';$('amtInput').focus();
                 processCalc();
             }
         }
@@ -468,8 +469,7 @@
 
         function clearAll() {
             tally = [];
-            $('amtInput').value = '';
-            $('amtInput').focus();
+            $('amtInput').value = '';$('amtInput').focus();
             processCalc();
         }
 
@@ -483,15 +483,14 @@
             return ['NOK'].includes(state.secCur) ? `${num} ${sym}` : `${sym}${num}`;
         }
 
-        // --- STREAMING_CHUNK:Core Calculation Logic ---
+        // --- Core Calculation Logic ---
         function processCalc() {
             const curInput = parseFloat($('amtInput').value) || 0;
             const runningTotal = getRunningTotal();
             const totalVal = runningTotal + curInput;
 
             const hasInput = (curInput > 0 || tally.length > 0);
-            $('btnClear').classList.toggle('hidden', !hasInput);
-            $('btnAddTally').classList.toggle('hidden', curInput <= 0);
+            $('btnClear').classList.toggle('hidden', !hasInput);$('btnAddTally').classList.toggle('hidden', curInput <= 0);
             
             // Build Tally Ribbon UI
             if (tally.length > 0) {
@@ -514,11 +513,9 @@
                 html += `<span class="px-2 py-1 text-[14px] font-black" style="color: var(--text-main)">${totalVal.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>`;
 
                 $('uiTallyRow').innerHTML = html;
-                $('uiTallyRow').classList.remove('hidden');
-                $('uiTallyRow').classList.add('flex');
+                $('uiTallyRow').classList.remove('hidden');$('uiTallyRow').classList.add('flex');
             } else {
-                $('uiTallyRow').classList.add('hidden');
-                $('uiTallyRow').classList.remove('flex');
+                $('uiTallyRow').classList.add('hidden');$('uiTallyRow').classList.remove('flex');
             }
 
             // Sync Header UI & Segmented Control
@@ -541,7 +538,6 @@
             const bundleInactiveC = "bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400";
 
             document.querySelectorAll('.bundle-btn').forEach(b => {
-                // Ignore currency buttons which also might have got the class accidentally in some edits, explicitly checking dataset
                 if(b.dataset.b) {
                     b.className = (b.dataset.b === state.bundleMode) ? bundleActiveC : bundleInactiveC;
                 }
@@ -552,15 +548,12 @@
 
             // Halt if invalid
             if (totalVal <= 0 || state.bundleSize <= 0) {
-                $('emptyView').classList.remove('hidden');
-                $('resultView').classList.add('hidden');
-                $('uiTargetPill').classList.add('hidden');
-                $('uiLiveConv').textContent = `≈ ${fmtCur(0)}`;
+                $('emptyView').classList.remove('hidden');$('resultView').classList.add('hidden');
+                $('uiTargetPill').classList.add('hidden');$('uiLiveConv').textContent = `≈ ${fmtCur(0)}`;
                 return;
             }
 
-            $('emptyView').classList.add('hidden');
-            $('resultView').classList.remove('hidden');
+            $('emptyView').classList.add('hidden');$('resultView').classList.remove('hidden');
 
             // Find Exact SLE target
             const exactSLE = state.mode === 'SLE' ? totalVal : totalVal * state.unitRate;
@@ -568,20 +561,17 @@
             const equivSec = exactSLE / state.unitRate;
 
             if (state.mode === 'SLE') {
-                $('uiTargetPill').classList.add('hidden');
-                $('uiLiveConv').textContent = `≈ ${fmtCur(equivSec)}`;
+                $('uiTargetPill').classList.add('hidden');$('uiLiveConv').textContent = `≈ ${fmtCur(equivSec)}`;
             } else {
-                $('uiTargetPill').classList.remove('hidden');
-                $('uiTargetPill').textContent = `Pay ${lastTargetSLE.toLocaleString()} SLE`;
+                $('uiTargetPill').classList.remove('hidden');$('uiTargetPill').textContent = `Pay ${lastTargetSLE.toLocaleString()} SLE`;
                 $('uiLiveConv').textContent = `1 ${state.secCur} = ${state.unitRate.toFixed(2)} SLE`;
             }
 
             calculateStrategies(lastTargetSLE, state.bundleSize);
         }
 
-        // --- STREAMING_CHUNK:Strategy Engine & Rendering ---
+        // --- Strategy Engine & Rendering ---
         function calculateStrategies(targetSLE, bSize) {
-            // Strategy ADD (Build Up)
             const bAdd = Math.floor(targetSLE / bSize);
             const remAdd = targetSLE - (bAdd * bSize);
             const billAdd = Math.ceil(remAdd / 20);
@@ -589,7 +579,6 @@
             const chgAdd = paidAdd - targetSLE;
             const stratAdd = { type: 'ADD', bun: bAdd, bil: billAdd, paid: paidAdd, chg: chgAdd };
 
-            // Strategy SUB (Break Down)
             const bSub = Math.max(1, Math.ceil(targetSLE / bSize));
             const surpSub = (bSub * bSize) - targetSLE;
             const billSub = Math.floor(surpSub / 20);
@@ -597,7 +586,6 @@
             const chgSub = paidSub - targetSLE;
             const stratSub = { type: 'SUB', bun: bSub, bil: billSub, paid: paidSub, chg: chgSub };
 
-            // Determine Winner (Least Counting)
             const pWin = stratAdd.bil <= stratSub.bil ? stratAdd : stratSub;
             const pAlt = stratAdd.bil <= stratSub.bil ? stratSub : stratAdd;
 
@@ -611,18 +599,15 @@
         function renderCard(s, bSize, isBest) {
             const colorClass = s.type === 'ADD' ? 'blue' : 'amber';
             
-            // Header
             $('uiMethodBadge').textContent = isBest ? 'Best Method' : 'Selected Method';
             $('uiMethodBadge').className = `px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-${colorClass}-100 text-${colorClass}-700 dark:bg-${colorClass}-900/40 dark:text-${colorClass}-400`;
             $('uiGiveTotal').textContent = `Give ${s.paid.toLocaleString()} SLE`;
             $('btnDeductWallet').textContent = `Deduct ${lastTargetSLE.toLocaleString()} SLE from Wallet`;
 
-            // Tile 1: Bundles
             $('uiBundleLabel').textContent = `${bSize.toLocaleString()} Bundle`;
             $('uiBundleCount').textContent = s.bun;
             $('uiBundleSub').textContent = `${(s.bun * bSize).toLocaleString()} SLE`;
 
-            // Tile 2: Bills (with integrated operator and 1-bill-less)
             $('uiBillsTile').className = `fintech-tile rounded-2xl p-4 flex flex-col justify-between min-h-[120px] border border-${colorClass}-500/30 shadow-inner`;
             $('uiBillsLabel').className = `text-[11px] font-bold uppercase tracking-wider text-${colorClass}-600 dark:text-${colorClass}-400`;
             $('uiBillsCount').className = `text-4xl font-black tracking-tight text-${colorClass}-600 dark:text-${colorClass}-400`;
@@ -630,7 +615,6 @@
             const sign = s.type === 'ADD' ? '+' : '−';
             $('uiBillsCount').textContent = s.bil === 0 ? '0' : `${sign}${s.bil}`;
 
-            // Exact 1-Bill-Less Logic injection
             const shortfallAdd = 20 - s.chg; 
             
             if (s.type === 'ADD') {
@@ -651,15 +635,12 @@
                 }
             }
 
-            // Change Footer
             if (s.chg === 0) {
                 $('uiChangeBanner').className = 'rounded-2xl px-4 py-3.5 flex items-center justify-between bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300';
-                $('uiChangeLabel').textContent = 'Exact Payment';
-                $('uiChangeAmount').textContent = '0 SLE Change';
+                $('uiChangeLabel').textContent = 'Exact Payment';$('uiChangeAmount').textContent = '0 SLE Change';
             } else {
                 $('uiChangeBanner').className = 'rounded-2xl px-4 py-3.5 flex items-center justify-between bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400';
-                $('uiChangeLabel').textContent = 'Change Back';
-                $('uiChangeAmount').textContent = `+${s.chg} SLE`;
+                $('uiChangeLabel').textContent = 'Change Back';$('uiChangeAmount').textContent = `+${s.chg} SLE`;
             }
         }
 
@@ -672,18 +653,18 @@
             $('uiAltBills').className = `px-2 py-1 rounded-md text-xs font-extrabold bg-${col}-100 dark:bg-${col}-900/40 text-${col}-700 dark:text-${col}-400 border border-${col}-500/20`;
         }
         
-        // --- STREAMING_CHUNK:Global Updates & Interactions ---
+        // --- Global Updates & Interactions ---
         function openSheet(id) {
             const sheet = $(id);
             sheet.classList.remove('hidden');
-            void sheet.offsetWidth; // Force reflow
+            void sheet.offsetWidth; 
             sheet.classList.add('sheet-active');
         }
 
         function closeSheet(id) {
             const sheet = $(id);
             sheet.classList.remove('sheet-active');
-            setTimeout(() => sheet.classList.add('hidden'), 400); // Wait for transition
+            setTimeout(() => sheet.classList.add('hidden'), 400); 
         }
 
         function updateGlobalData() {
@@ -697,8 +678,8 @@
             $('selSecCur').value = state.secCur;
             $('uiBenchSym').textContent = CUR_SYM[state.secCur] || '';
             
-            if (document.activeElement !== $('inBenchBase')) $('inBenchBase').value = state.benchBase;
-            if (document.activeElement !== $('inBenchSLE')) $('inBenchSLE').value = bSle;
+            if (document.activeElement !== $('inBenchBase'))$('inBenchBase').value = state.benchBase;
+            if (document.activeElement !== $('inBenchSLE'))$('inBenchSLE').value = bSle;
             
             $('uiUnitRateInfo').textContent = `1 ${state.secCur} = ${state.unitRate.toFixed(2)} SLE`;
             
@@ -720,24 +701,20 @@
             } catch(e) {}
         }
 
-        // --- STREAMING_CHUNK:Event Listeners Binding ---
+        // --- Event Listeners Binding ---
         $('btnThemeToggle').addEventListener('click', () => {
             state.theme = state.theme === 'dark' ? 'light' : 'dark';
             saveLocal();
             renderTheme();
         });
 
-        $('modeBtnSLE').addEventListener('click', () => { state.mode = 'SLE'; processCalc(); });
-        $('modeBtnSEC').addEventListener('click', () => { state.mode = 'SEC'; processCalc(); });
+        $('modeBtnSLE').addEventListener('click', () => { state.mode = 'SLE'; processCalc(); });$('modeBtnSEC').addEventListener('click', () => { state.mode = 'SEC'; processCalc(); });
         
-        $('btnChangeCur').addEventListener('click', () => openSheet('sheetRate'));
-        $('btnOpenRate').addEventListener('click', () => openSheet('sheetRate'));
+        $('btnChangeCur').addEventListener('click', () => openSheet('sheetRate'));$('btnOpenRate').addEventListener('click', () => openSheet('sheetRate'));
         
-        $('amtInput').addEventListener('input', () => { state.swappedAlt = false; processCalc(); });
-        $('amtInput').addEventListener('keydown', e => { if (e.key === 'Enter') commitTally(); });
+        $('amtInput').addEventListener('input', () => { state.swappedAlt = false; processCalc(); });$('amtInput').addEventListener('keydown', e => { if (e.key === 'Enter') commitTally(); });
         
-        $('btnAddTally').addEventListener('click', commitTally);
-        $('btnClear').addEventListener('click', clearAll);
+        $('btnAddTally').addEventListener('click', commitTally);$('btnClear').addEventListener('click', clearAll);
 
         document.querySelectorAll('.bundle-btn').forEach(btn => {
             if(!btn.dataset.b) return;
@@ -748,11 +725,9 @@
             });
         });
 
-        $('customBInput').addEventListener('input', processCalc);
-        $('btnSwapAlt').addEventListener('click', () => { 
+        $('customBInput').addEventListener('input', processCalc);$('btnSwapAlt').addEventListener('click', () => { 
             state.swappedAlt = !state.swappedAlt; 
             processCalc(); 
-            // Trigger Swap Animation
             const resView = $('resultView');
             resView.classList.remove('animate-fade-slide');
             void resView.offsetWidth;
