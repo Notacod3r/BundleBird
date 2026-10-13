@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Leone Pay">
+    <meta id="themeColorMeta" name="theme-color" content="#F2F2F7">
+    <title>Leone Pay</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'SF Pro Display', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-canvas: #F2F2F7;
+            --bg-surface: #FFFFFF;
+            --bg-tile: #F8F9FA;
+            --bg-segmented: #E5E5EA;
+            --bg-pill: rgba(255, 255, 255, 0.88);
+            --border-hairline: rgba(0, 0, 0, 0.08);
+            --border-heavy: rgba(0, 0, 0, 0.12);
+            --text-main: #000000;
+            --text-muted: #8E8E93;
+            --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            --theme-icon-color: #F59E0B;
+        }
+        
+        html.dark {
+            --bg-canvas: #000000;
+            --bg-surface: #121316;
+            --bg-tile: #1A1B20;
+            --bg-segmented: #1C1D22;
+            --bg-pill: rgba(24, 26, 32, 0.88);
+            --border-hairline: rgba(255, 255, 255, 0.08);
+            --border-heavy: rgba(255, 255, 255, 0.15);
+            --text-main: #FFFFFF;
+            --text-muted: #8E929E;
+            --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            --theme-icon-color: #64748B;
+        }
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-main);
+            font-variant-numeric: tabular-nums;
+            overflow-x: hidden;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; }
+        
+        .glass-pill {
+            background: var(--bg-pill);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-hairline);
+        }
+        
+        .fintech-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-hairline);
+            box-shadow: var(--card-shadow);
+        }
+        
+        .fintech-tile {
+            background-color: var(--bg-tile);
+            border: 1px solid var(--border-hairline);
+        }
+        
+        .segmented-control {
+            background-color: var(--bg-segmented);
+            border: 1px solid var(--border-hairline);
+        }
+        
+        /* Bottom Sheet Transitions */
+        .sheet-backdrop {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .sheet-panel {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        .sheet-active .sheet-backdrop { opacity: 1; }
+        .sheet-active .sheet-panel { transform: translateY(0); }
+
+        /* General Keyframes */
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes scaleOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.8); }
+        }
+        .animate-scale-in { animation: scaleIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .animate-scale-out { animation: scaleOut 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-slide { animation: fadeSlideUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center px-4 pt-3 pb-10 antialiased">
+
+    <div class="w-full max-w-[420px] flex flex-col gap-4">
+
+        <!-- Header Navigation: Wallet, Rates, Theme -->
+        <header class="flex items-center justify-between pt-1 relative z-20">
+            <button id="btnOpenWallet" class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-2 active:scale-95 transition shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="text-xs font-semibold" style="color: var(--text-muted)">Wallet</span>
+                <span id="uiWalletTotal" class="text-xs font-bold tracking-tight">5,000 SLE</span>
+            </button>
+
+            <div class="flex items-center gap-1.5">
+                <button id="btnOpenRate" class="glass-pill px-3.5 py-2 rounded-full flex items-center gap-1.5 active:scale-95 transition shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    <span id="uiBenchHeader" class="text-xs font-bold tracking-tight">$100 = 2,285 SLE</span>
+                </button>
+                <button id="btnThemeToggle" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition shadow-sm">
+                    <svg id="iconTheme" class="w-4 h-4" style="color: var(--theme-icon-color)" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <section class="pt-4 pb-2 flex flex-col items-center text-center">
+            
+            <!-- Dual Action Row: Mode Segmented Control + Foreign Currency Settings -->
+            <div class="flex items-center gap-2 mb-3 w-full max-w-[280px]">
+                <div class="inline-flex p-1 rounded-full segmented-control flex-1">
+                    <button id="modeBtnSLE" class="px-4 py-1.5 rounded-full text-xs font-bold transition flex-1 text-center bg-white dark:bg-[#2A2B30] text-black dark:text-white shadow-sm border border-[var(--border-hairline)]">
+                        SLE
+                    </button>
+                    <button id="modeBtnSEC" class="px-4 py-1.5 rounded-full text-xs font-bold transition flex-1 text-center text-gray-500 dark:text-gray-400 border border-transparent">
+                        USD
+                    </button>
+                </div>
+                <!-- Independent Currency Swap Config Button -->
+                <button id="btnChangeCur" class="w-[34px] h-[34px] rounded-full bg-white dark:bg-[#2A2B30] border border-[var(--border-hairline)] shadow-sm flex items-center justify-center text-gray-700 dark:text-gray-300 active:scale-95 transition shrink-0" title="Change Secondary Currency">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Tally Row (Interactive Pills) -->
+            <div id="uiTallyRow" class="hidden mb-1 flex-wrap items-center justify-center gap-1.5 w-full max-w-[340px] min-h-[28px]">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Hero Amount Input -->
+            <div class="relative w-full flex items-center justify-center min-h-[72px]">
+                <span id="uiPrefix" class="text-3xl font-extrabold mr-2 select-none" style="color: var(--text-muted)">SLE</span>
+                <input
+                    id="amtInput"
+                    type="number"
+                    inputmode="decimal"
+                    step="any"
+                    placeholder="0"
+                    class="w-full max-w-[200px] bg-transparent text-6xl font-black tracking-tight text-center focus:outline-none placeholder-gray-300 dark:placeholder-gray-800"
+                />
+                
+                <!-- Action Buttons right of input -->
+                <div class="absolute right-0 sm:right-2 flex items-center gap-1.5">
+                    <button id="btnAddTally" class="w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center active:scale-90 transition hidden" style="color: var(--text-main)" title="Add to Tally">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+                        </svg>
+                    </button>
+                    <button id="btnClear" class="w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center active:scale-90 transition hidden" style="color: var(--text-main)" title="Clear All">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-2 text-xs font-semibold flex items-center gap-2 justify-center" style="color: var(--text-muted)">
+                <span id="uiTargetPill" class="hidden px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-bold tracking-tight">Pay 0 SLE</span>
+                <span id="uiLiveConv">≈ $0.00 USD</span>
+            </div>
+        </section>
+
+        <section class="flex flex-col gap-2 z-10 relative mt-1">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--text-muted)">Bundle Size</span>
+                <div class="inline-flex p-1 rounded-2xl segmented-control">
+                    <button id="btnBundle1000" data-b="1000" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition shadow-sm border border-[var(--border-hairline)] bg-white dark:bg-[#2A2B30] text-black dark:text-white">1,000</button>
+                    <button id="btnBundle800" data-b="800" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400">800</button>
+                    <button id="btnBundleCustom" data-b="custom" class="bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400">Custom</button>
+                </div>
+            </div>
+            
+            <div id="customBundleRow" class="hidden fintech-tile rounded-xl px-4 py-2.5 flex items-center justify-between animate-fade-slide">
+                <span class="text-xs font-semibold" style="color: var(--text-muted)">Custom (SLE)</span>
+                <input id="customBInput" type="number" inputmode="numeric" value="500" class="w-20 bg-transparent text-right font-black text-blue-600 dark:text-blue-400 focus:outline-none" />
+            </div>
+        </section>
+
+        <div id="emptyView" class="fintech-card rounded-[28px] p-8 text-center mt-2">
+            <p class="text-sm font-bold">Enter an amount</p>
+            <p class="text-xs mt-1" style="color: var(--text-muted)">Instant bundle & 20 NLe breakdown</p>
+        </div>
+
+        <main id="resultView" class="hidden flex flex-col gap-3 mt-2 relative z-0">
+            <!-- Best Method Main Card -->
+            <div class="fintech-card rounded-[28px] p-5 flex flex-col gap-4">
+                
+                <!-- Card Header -->
+                <div class="flex items-center justify-between">
+                    <span id="uiMethodBadge" class="px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider">
+                        Best Method
+                    </span>
+                    <span id="uiGiveTotal" class="text-xs font-bold" style="color: var(--text-muted)">Give 0 SLE</span>
+                </div>
+
+                <!-- 2-Tile Equation Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Left Tile: Bundles -->
+                    <div class="fintech-tile rounded-2xl p-4 flex flex-col justify-between min-h-[120px]">
+                        <span id="uiBundleLabel" class="text-[11px] font-bold uppercase tracking-wider" style="color: var(--text-muted)">1,000 Bundle</span>
+                        <div class="my-1"><span id="uiBundleCount" class="text-4xl font-black tracking-tight">0</span></div>
+                        <span id="uiBundleSub" class="text-xs font-semibold" style="color: var(--text-muted)">0 SLE</span>
+                    </div>
+
+                    <!-- Right Tile: 20 NLe Bills (+/- logic inside) -->
+                    <div id="uiBillsTile" class="fintech-tile rounded-2xl p-4 flex flex-col justify-between min-h-[120px]">
+                        <span id="uiBillsLabel" class="text-[11px] font-bold uppercase tracking-wider">× 20 Bills</span>
+                        <div class="my-1"><span id="uiBillsCount" class="text-4xl font-black tracking-tight">+0</span></div>
+                        <!-- "1 Bill Less" integrated below -->
+                        <span id="uiOneLessLabel" class="text-[11px] font-bold opacity-90 leading-tight">or ...</span>
+                    </div>
+                </div>
+
+                <!-- Change Banner Footer -->
+                <div id="uiChangeBanner" class="rounded-2xl px-4 py-3.5 flex items-center justify-between">
+                    <span id="uiChangeLabel" class="text-xs font-extrabold uppercase tracking-wider">Change Back</span>
+                    <span id="uiChangeAmount" class="text-xl font-black tracking-tight">0 SLE</span>
+                </div>
+
+                <!-- Deduct Action -->
+                <button id="btnDeductWallet" class="w-full py-3.5 rounded-2xl font-extrabold text-xs uppercase tracking-wider active:scale-[0.98] transition bg-black text-white dark:bg-white dark:text-black">
+                    Deduct from Wallet
+                </button>
+            </div>
+
+            <!-- Alternative Strategy Bar -->
+            <button id="btnSwapAlt" class="fintech-card rounded-2xl px-3 py-3 flex items-center justify-between active:scale-[0.99] transition">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider mr-1" style="color: var(--text-muted)">Alt</span>
+                    <span id="uiAltBundles" class="px-2 py-1 rounded-md text-xs font-extrabold bg-black/5 dark:bg-white/10">0 Bundles</span>
+                    <span id="uiAltBills" class="px-2 py-1 rounded-md text-xs font-extrabold">−0 × 20s</span>
+                </div>
+                <span class="text-xs font-bold flex items-center shrink-0 ml-2" style="color: var(--text-muted)">Swap ⇄</span>
+            </button>
+        </main>
+    </div>
+
+    <div id="sheetWallet" class="fixed inset-0 z-50 hidden">
+        <div class="sheet-backdrop absolute inset-0 closeWalletBtn"></div>
+        <div class="sheet-panel fintech-card absolute bottom-0 inset-x-0 max-w-[420px] mx-auto rounded-t-[32px] p-6 pb-10 flex flex-col gap-4 border-t" style="border-color: var(--border-heavy)">
+            <div class="w-10 h-1.5 rounded-full mx-auto -mt-2 mb-1" style="background: var(--border-heavy)"></div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-extrabold">Cash Wallet</h2>
+                    <p class="text-xs" style="color: var(--text-muted)">Enter SLE cash on hand</p>
+                </div>
+                <button class="closeWalletBtn w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold active:scale-90">✕</button>
+            </div>
+            
+            <div class="fintech-tile rounded-2xl p-4 border border-emerald-500/30">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-500">Balance</span>
+                    <span id="uiWalletEquiv" class="text-xs font-bold" style="color: var(--text-muted)">≈ $0.00</span>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-lg font-extrabold" style="color: var(--text-muted)">SLE</span>
+                    <input id="inputWalletBal" type="number" inputmode="decimal" class="w-full bg-transparent text-3xl font-black focus:outline-none" />
+                </div>
+            </div>
+
+            <!-- Quick Adjusters -->
+            <div class="grid grid-cols-3 gap-2">
+                <button data-wd="-1000" class="wallet-adj py-2.5 rounded-xl fintech-tile text-xs font-extrabold text-red-500 active:scale-95 transition">−1,000</button>
+                <button data-wd="1000" class="wallet-adj py-2.5 rounded-xl fintech-tile text-xs font-extrabold text-emerald-600 active:scale-95 transition">+1,000</button>
+                <button data-wd="2000" class="wallet-adj py-2.5 rounded-xl fintech-tile text-xs font-extrabold text-emerald-600 active:scale-95 transition">+2,000</button>
+            </div>
+
+            <button class="closeWalletBtn w-full py-3.5 rounded-2xl font-extrabold text-xs uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black active:scale-[0.98]">Done</button>
+        </div>
+    </div>
+
+    <div id="sheetRate" class="fixed inset-0 z-50 hidden">
+        <div class="sheet-backdrop absolute inset-0 closeRateBtn"></div>
+        <div class="sheet-panel fintech-card absolute bottom-0 inset-x-0 max-w-[420px] mx-auto rounded-t-[32px] p-6 pb-10 flex flex-col gap-4 border-t" style="border-color: var(--border-heavy)">
+            <div class="w-10 h-1.5 rounded-full mx-auto -mt-2 mb-1" style="background: var(--border-heavy)"></div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-extrabold">Currency & Rates</h2>
+                    <p class="text-xs flex items-center gap-1.5 mt-0.5" style="color: var(--text-muted)"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Background sync active</p>
+                </div>
+                <button class="closeRateBtn w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold active:scale-90">✕</button>
+            </div>
+
+            <div class="fintech-tile rounded-2xl p-3.5 flex flex-col gap-1.5">
+                <label class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted)">Secondary Currency</label>
+                <select id="selSecCur" class="w-full bg-transparent text-sm font-extrabold focus:outline-none">
+                    <option value="USD">USD ($) — US Dollar</option>
+                    <option value="NOK">NOK (kr) — Norwegian Krone</option>
+                    <option value="GBP">GBP (£) — British Pound</option>
+                    <option value="EUR">EUR (€) — Euro</option>
+                </select>
+            </div>
+
+            <div class="fintech-tile rounded-2xl p-4 border border-blue-500/30 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Benchmark Rate</span>
+                    <span id="uiUnitRateInfo" class="text-[11px] font-semibold" style="color: var(--text-muted)">1 USD = 22.85 SLE</span>
+                </div>
+                <div class="grid grid-cols-[1fr_auto_1.2fr] items-center gap-2">
+                    <div class="bg-black/5 dark:bg-black/40 rounded-xl px-3 py-2 flex items-center">
+                        <span id="uiBenchSym" class="text-xs font-bold" style="color: var(--text-muted)">$</span>
+                        <input id="inBenchBase" type="number" inputmode="decimal" class="w-full bg-transparent text-right text-lg font-black focus:outline-none" />
+                    </div>
+                    <span class="text-sm font-black" style="color: var(--text-muted)">=</span>
+                    <div class="bg-black/5 dark:bg-black/40 rounded-xl px-3 py-2 border border-blue-500/30 flex items-center">
+                        <input id="inBenchSLE" type="number" inputmode="decimal" class="w-full bg-transparent text-right text-lg font-black text-blue-600 dark:text-blue-400 focus:outline-none" />
+                        <span class="text-xs font-bold ml-1.5" style="color: var(--text-muted)">SLE</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="closeRateBtn w-full py-3.5 rounded-2xl font-extrabold text-xs uppercase tracking-wider bg-black text-white dark:bg-white dark:text-black active:scale-[0.98]">Done</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[360px] glass-pill rounded-2xl px-4 py-3 flex items-center justify-between z-50 transition-all duration-300 opacity-0 translate-y-6 pointer-events-none shadow-lg">
+        <span id="toastText" class="text-xs font-bold">Wallet updated</span>
+        <button id="btnUndoToast" class="px-3 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 text-xs font-extrabold uppercase">Undo</button>
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        
+        // --- Core Application State ---
+        let state = {
+            theme: 'light',
+            mode: 'SLE',
+            secCur: 'USD',
+            benchBase: 100,
+            unitRate: 22.85,
+            apiRates: {},
+            walletSLE: 5000,
+            bundleMode: '1000',
+            bundleSize: 1000,
+            swappedAlt: false
+        };
+
+        const CUR_SYM = { USD: '$', NOK: 'kr', GBP: '£', EUR: '€' };
+        
+        let tally = [];
+        let lastTargetSLE = 0;
+        let undoWalletSnap = null;
+
+        // --- Persistence ---
+        function saveLocal() {
+            try { localStorage.setItem('leonePayV10', JSON.stringify(state)); } catch (e) {}
+        }
+        function loadLocal() {
+            try {
+                const s = JSON.parse(localStorage.getItem('leonePayV10'));
+                if (s) state = { ...state, ...s };
+            } catch (e) {}
+        }
+
+        // --- Theme Engine ---
+        function renderTheme() {
+            const isDark = state.theme === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            
+            $('iconTheme').innerHTML = isDark
+                ? `<circle cx="12" cy="12" r="4"></circle><path stroke-linecap="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"></path>` 
+                : `<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>`;
+            
+            const meta = $('themeColorMeta');
+            if (meta) meta.setAttribute('content', isDark ? '#000000' : '#F2F2F7');
+        }
+
+        // --- Tally Engine ---
+        function commitTally() {
+            const curVal = parseFloat($('amtInput').value);
+            if (curVal > 0) {
+                tally.push(curVal);
+                $('amtInput').value = '';
+                $('amtInput').focus();
+                processCalc();
+            }
+        }
+
+        window.removeTallyItem = function(index) {
+            const btn = $(`tally-pill-${index}`);
+            if (btn) {
+                btn.classList.remove('animate-scale-in');
+                btn.classList.add('animate-scale-out');
+                setTimeout(() => {
+                    tally.splice(index, 1);
+                    processCalc();
+                }, 200);
+            } else {
+                tally.splice(index, 1);
+                processCalc();
+            }
+        }
+
+        function clearAll() {
+            tally = [];
+            $('amtInput').value = '';
+            $('amtInput').focus();
+            processCalc();
+        }
+
+        function getRunningTotal() {
+            return tally.reduce((acc, val) => acc + val, 0);
+        }
+
+        function fmtCur(amt) {
+            const sym = CUR_SYM[state.secCur] || '';
+            const num = amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return ['NOK'].includes(state.secCur) ? `${num} ${sym}` : `${sym}${num}`;
+        }
+
+        // --- STREAMING_CHUNK:Core Calculation Logic ---
+        function processCalc() {
+            const curInput = parseFloat($('amtInput').value) || 0;
+            const runningTotal = getRunningTotal();
+            const totalVal = runningTotal + curInput;
+
+            const hasInput = (curInput > 0 || tally.length > 0);
+            $('btnClear').classList.toggle('hidden', !hasInput);
+            $('btnAddTally').classList.toggle('hidden', curInput <= 0);
+            
+            // Build Tally Ribbon UI
+            if (tally.length > 0) {
+                let html = '';
+                tally.forEach((val, idx) => {
+                    html += `<button id="tally-pill-${idx}" onclick="removeTallyItem(${idx})" class="animate-scale-in flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-[13px] font-extrabold text-blue-600 dark:text-blue-400 active:scale-95 transition">
+                                ${val}
+                                <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                             </button>`;
+                    if (idx < tally.length - 1 || curInput > 0) {
+                        html += `<span class="text-[13px] font-bold text-gray-400 dark:text-gray-500">+</span>`;
+                    }
+                });
+
+                if (curInput > 0) {
+                    html += `<span class="animate-scale-in px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/10 text-[13px] font-extrabold text-blue-600 dark:text-blue-400">${curInput}</span>`;
+                }
+
+                html += `<span class="text-[13px] font-bold text-gray-400 dark:text-gray-500">=</span>`;
+                html += `<span class="px-2 py-1 text-[14px] font-black" style="color: var(--text-main)">${totalVal.toLocaleString(undefined, {maximumFractionDigits: 2})}</span>`;
+
+                $('uiTallyRow').innerHTML = html;
+                $('uiTallyRow').classList.remove('hidden');
+                $('uiTallyRow').classList.add('flex');
+            } else {
+                $('uiTallyRow').classList.add('hidden');
+                $('uiTallyRow').classList.remove('flex');
+            }
+
+            // Sync Header UI & Segmented Control
+            $('modeBtnSEC').textContent = state.secCur;
+            $('uiPrefix').textContent = state.mode === 'SLE' ? 'SLE' : (CUR_SYM[state.secCur] || '');
+            
+            const activeC = "bundle-btn px-4 py-1.5 rounded-full text-xs font-bold transition flex-1 text-center bg-white dark:bg-[#2A2B30] text-black dark:text-white shadow-sm border border-[var(--border-hairline)]";
+            const inactiveC = "bundle-btn px-4 py-1.5 rounded-full text-xs font-bold transition flex-1 text-center text-gray-500 dark:text-gray-400 border border-transparent";
+            
+            if (state.mode === 'SLE') {
+                $('modeBtnSLE').className = activeC;
+                $('modeBtnSEC').className = inactiveC;
+            } else {
+                $('modeBtnSEC').className = activeC;
+                $('modeBtnSLE').className = inactiveC;
+            }
+
+            // Sync Bundle Selector Styles
+            const bundleActiveC = "bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition shadow-sm border border-[var(--border-hairline)] bg-white dark:bg-[#2A2B30] text-black dark:text-white";
+            const bundleInactiveC = "bundle-btn px-3 py-1 rounded-xl text-xs font-bold transition border border-transparent text-gray-500 dark:text-gray-400";
+
+            document.querySelectorAll('.bundle-btn').forEach(b => {
+                // Ignore currency buttons which also might have got the class accidentally in some edits, explicitly checking dataset
+                if(b.dataset.b) {
+                    b.className = (b.dataset.b === state.bundleMode) ? bundleActiveC : bundleInactiveC;
+                }
+            });
+            
+            $('customBundleRow').classList.toggle('hidden', state.bundleMode !== 'custom');
+            state.bundleSize = state.bundleMode === 'custom' ? (parseInt($('customBInput').value, 10) || 500) : parseInt(state.bundleMode, 10);
+
+            // Halt if invalid
+            if (totalVal <= 0 || state.bundleSize <= 0) {
+                $('emptyView').classList.remove('hidden');
+                $('resultView').classList.add('hidden');
+                $('uiTargetPill').classList.add('hidden');
+                $('uiLiveConv').textContent = `≈ ${fmtCur(0)}`;
+                return;
+            }
+
+            $('emptyView').classList.add('hidden');
+            $('resultView').classList.remove('hidden');
+
+            // Find Exact SLE target
+            const exactSLE = state.mode === 'SLE' ? totalVal : totalVal * state.unitRate;
+            lastTargetSLE = Math.ceil(exactSLE);
+            const equivSec = exactSLE / state.unitRate;
+
+            if (state.mode === 'SLE') {
+                $('uiTargetPill').classList.add('hidden');
+                $('uiLiveConv').textContent = `≈ ${fmtCur(equivSec)}`;
+            } else {
+                $('uiTargetPill').classList.remove('hidden');
+                $('uiTargetPill').textContent = `Pay ${lastTargetSLE.toLocaleString()} SLE`;
+                $('uiLiveConv').textContent = `1 ${state.secCur} = ${state.unitRate.toFixed(2)} SLE`;
+            }
+
+            calculateStrategies(lastTargetSLE, state.bundleSize);
+        }
+
+        // --- STREAMING_CHUNK:Strategy Engine & Rendering ---
+        function calculateStrategies(targetSLE, bSize) {
+            // Strategy ADD (Build Up)
+            const bAdd = Math.floor(targetSLE / bSize);
+            const remAdd = targetSLE - (bAdd * bSize);
+            const billAdd = Math.ceil(remAdd / 20);
+            const paidAdd = (bAdd * bSize) + (billAdd * 20);
+            const chgAdd = paidAdd - targetSLE;
+            const stratAdd = { type: 'ADD', bun: bAdd, bil: billAdd, paid: paidAdd, chg: chgAdd };
+
+            // Strategy SUB (Break Down)
+            const bSub = Math.max(1, Math.ceil(targetSLE / bSize));
+            const surpSub = (bSub * bSize) - targetSLE;
+            const billSub = Math.floor(surpSub / 20);
+            const paidSub = (bSub * bSize) - (billSub * 20);
+            const chgSub = paidSub - targetSLE;
+            const stratSub = { type: 'SUB', bun: bSub, bil: billSub, paid: paidSub, chg: chgSub };
+
+            // Determine Winner (Least Counting)
+            const pWin = stratAdd.bil <= stratSub.bil ? stratAdd : stratSub;
+            const pAlt = stratAdd.bil <= stratSub.bil ? stratSub : stratAdd;
+
+            const active = state.swappedAlt ? pAlt : pWin;
+            const alt = state.swappedAlt ? pWin : pAlt;
+
+            renderCard(active, bSize, !state.swappedAlt);
+            renderAltRow(alt);
+        }
+
+        function renderCard(s, bSize, isBest) {
+            const colorClass = s.type === 'ADD' ? 'blue' : 'amber';
+            
+            // Header
+            $('uiMethodBadge').textContent = isBest ? 'Best Method' : 'Selected Method';
+            $('uiMethodBadge').className = `px-2.5 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-${colorClass}-100 text-${colorClass}-700 dark:bg-${colorClass}-900/40 dark:text-${colorClass}-400`;
+            $('uiGiveTotal').textContent = `Give ${s.paid.toLocaleString()} SLE`;
+            $('btnDeductWallet').textContent = `Deduct ${lastTargetSLE.toLocaleString()} SLE from Wallet`;
+
+            // Tile 1: Bundles
+            $('uiBundleLabel').textContent = `${bSize.toLocaleString()} Bundle`;
+            $('uiBundleCount').textContent = s.bun;
+            $('uiBundleSub').textContent = `${(s.bun * bSize).toLocaleString()} SLE`;
+
+            // Tile 2: Bills (with integrated operator and 1-bill-less)
+            $('uiBillsTile').className = `fintech-tile rounded-2xl p-4 flex flex-col justify-between min-h-[120px] border border-${colorClass}-500/30 shadow-inner`;
+            $('uiBillsLabel').className = `text-[11px] font-bold uppercase tracking-wider text-${colorClass}-600 dark:text-${colorClass}-400`;
+            $('uiBillsCount').className = `text-4xl font-black tracking-tight text-${colorClass}-600 dark:text-${colorClass}-400`;
+            
+            const sign = s.type === 'ADD' ? '+' : '−';
+            $('uiBillsCount').textContent = s.bil === 0 ? '0' : `${sign}${s.bil}`;
+
+            // Exact 1-Bill-Less Logic injection
+            const shortfallAdd = 20 - s.chg; 
+            
+            if (s.type === 'ADD') {
+                if (s.bil > 0 && shortfallAdd > 0 && shortfallAdd < 20) {
+                    $('uiOneLessLabel').innerHTML = `or +${s.bil - 1} & add <span class="text-${colorClass}-600 dark:text-${colorClass}-400">${shortfallAdd} SLE</span>`;
+                } else {
+                    $('uiOneLessLabel').textContent = `${(s.bil * 20).toLocaleString()} SLE in 20s`;
+                }
+            } else {
+                const pullMore = s.bil + 1;
+                const paidIfSubMore = (s.bun * bSize) - (pullMore * 20);
+                const shortIfSubMore = lastTargetSLE - paidIfSubMore;
+
+                if (shortIfSubMore > 0 && shortIfSubMore < 20) {
+                    $('uiOneLessLabel').innerHTML = `or −${pullMore} & add <span class="text-${colorClass}-600 dark:text-${colorClass}-400">${shortIfSubMore} SLE</span>`;
+                } else {
+                    $('uiOneLessLabel').textContent = s.bil === 0 ? 'Exact bundle' : `Keep ${s.bil * 20} SLE`;
+                }
+            }
+
+            // Change Footer
+            if (s.chg === 0) {
+                $('uiChangeBanner').className = 'rounded-2xl px-4 py-3.5 flex items-center justify-between bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300';
+                $('uiChangeLabel').textContent = 'Exact Payment';
+                $('uiChangeAmount').textContent = '0 SLE Change';
+            } else {
+                $('uiChangeBanner').className = 'rounded-2xl px-4 py-3.5 flex items-center justify-between bg-emerald-100/60 dark:bg-emerald-900/30 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400';
+                $('uiChangeLabel').textContent = 'Change Back';
+                $('uiChangeAmount').textContent = `+${s.chg} SLE`;
+            }
+        }
+
+        function renderAltRow(alt) {
+            $('uiAltBundles').textContent = `${alt.bun} Bundles`;
+            const sign = alt.type === 'ADD' ? '+' : '−';
+            const col = alt.type === 'ADD' ? 'blue' : 'amber';
+            
+            $('uiAltBills').textContent = `${sign}${alt.bil} × 20s`;
+            $('uiAltBills').className = `px-2 py-1 rounded-md text-xs font-extrabold bg-${col}-100 dark:bg-${col}-900/40 text-${col}-700 dark:text-${col}-400 border border-${col}-500/20`;
+        }
+        
+        // --- STREAMING_CHUNK:Global Updates & Interactions ---
+        function openSheet(id) {
+            const sheet = $(id);
+            sheet.classList.remove('hidden');
+            void sheet.offsetWidth; // Force reflow
+            sheet.classList.add('sheet-active');
+        }
+
+        function closeSheet(id) {
+            const sheet = $(id);
+            sheet.classList.remove('sheet-active');
+            setTimeout(() => sheet.classList.add('hidden'), 400); // Wait for transition
+        }
+
+        function updateGlobalData() {
+            $('uiWalletTotal').textContent = `${state.walletSLE.toLocaleString()} SLE`;
+            $('inputWalletBal').value = state.walletSLE;
+            $('uiWalletEquiv').textContent = `≈ ${fmtCur(state.walletSLE / state.unitRate)}`;
+
+            const bSle = Math.round(state.benchBase * state.unitRate);
+            $('uiBenchHeader').textContent = `${CUR_SYM[state.secCur] || ''}${state.benchBase} = ${bSle.toLocaleString()} SLE`;
+            
+            $('selSecCur').value = state.secCur;
+            $('uiBenchSym').textContent = CUR_SYM[state.secCur] || '';
+            
+            if (document.activeElement !== $('inBenchBase')) $('inBenchBase').value = state.benchBase;
+            if (document.activeElement !== $('inBenchSLE')) $('inBenchSLE').value = bSle;
+            
+            $('uiUnitRateInfo').textContent = `1 ${state.secCur} = ${state.unitRate.toFixed(2)} SLE`;
+            
+            processCalc();
+        }
+
+        // --- Silent API Sync ---
+        async function fetchRates() {
+            try {
+                const r = await fetch('https://open.er-api.com/v6/latest/USD').then(x => x.json());
+                if (r && r.rates) {
+                    state.apiRates = r.rates;
+                    const sle = r.rates.SLE || 22.85;
+                    const cur = r.rates[state.secCur] || 1;
+                    state.unitRate = +(sle / cur).toFixed(4);
+                    saveLocal();
+                    updateGlobalData();
+                }
+            } catch(e) {}
+        }
+
+        // --- STREAMING_CHUNK:Event Listeners Binding ---
+        $('btnThemeToggle').addEventListener('click', () => {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            saveLocal();
+            renderTheme();
+        });
+
+        $('modeBtnSLE').addEventListener('click', () => { state.mode = 'SLE'; processCalc(); });
+        $('modeBtnSEC').addEventListener('click', () => { state.mode = 'SEC'; processCalc(); });
+        
+        $('btnChangeCur').addEventListener('click', () => openSheet('sheetRate'));
+        $('btnOpenRate').addEventListener('click', () => openSheet('sheetRate'));
+        
+        $('amtInput').addEventListener('input', () => { state.swappedAlt = false; processCalc(); });
+        $('amtInput').addEventListener('keydown', e => { if (e.key === 'Enter') commitTally(); });
+        
+        $('btnAddTally').addEventListener('click', commitTally);
+        $('btnClear').addEventListener('click', clearAll);
+
+        document.querySelectorAll('.bundle-btn').forEach(btn => {
+            if(!btn.dataset.b) return;
+            btn.addEventListener('click', () => {
+                state.bundleMode = btn.dataset.b;
+                state.swappedAlt = false;
+                processCalc();
+            });
+        });
+
+        $('customBInput').addEventListener('input', processCalc);
+        $('btnSwapAlt').addEventListener('click', () => { 
+            state.swappedAlt = !state.swappedAlt; 
+            processCalc(); 
+            // Trigger Swap Animation
+            const resView = $('resultView');
+            resView.classList.remove('animate-fade-slide');
+            void resView.offsetWidth;
+            resView.classList.add('animate-fade-slide');
+        });
+
+        // Wallet Logic
+        $('btnOpenWallet').addEventListener('click', () => openSheet('sheetWallet'));
+        document.querySelectorAll('.closeWalletBtn').forEach(b => b.addEventListener('click', () => closeSheet('sheetWallet')));
+
+        $('inputWalletBal').addEventListener('input', e => {
+            state.walletSLE = Math.max(0, parseFloat(e.target.value) || 0);
+            saveLocal();
+            updateGlobalData();
+        });
+
+        document.querySelectorAll('.wallet-adj').forEach(b => {
+            b.addEventListener('click', () => {
+                state.walletSLE = Math.max(0, state.walletSLE + parseInt(b.dataset.wd, 10));
+                saveLocal();
+                updateGlobalData();
+            });
+        });
+
+        $('btnDeductWallet').addEventListener('click', () => {
+            if (lastTargetSLE <= 0) return;
+            undoWalletSnap = state.walletSLE;
+            state.walletSLE = Math.max(0, state.walletSLE - lastTargetSLE);
+            saveLocal();
+            updateGlobalData();
+
+            $('toastText').textContent = `Deducted ${lastTargetSLE.toLocaleString()} SLE`;
+            $('toast').classList.remove('opacity-0', 'translate-y-6', 'pointer-events-none');
+            setTimeout(() => $('toast').classList.add('opacity-0', 'translate-y-6', 'pointer-events-none'), 4000);
+        });
+
+        $('btnUndoToast').addEventListener('click', () => {
+            if (undoWalletSnap !== null) {
+                state.walletSLE = undoWalletSnap;
+                saveLocal();
+                updateGlobalData();
+                $('toast').classList.add('opacity-0', 'translate-y-6', 'pointer-events-none');
+                undoWalletSnap = null;
+            }
+        });
+
+        // Rate Logic
+        document.querySelectorAll('.closeRateBtn').forEach(b => b.addEventListener('click', () => closeSheet('sheetRate')));
+
+        $('selSecCur').addEventListener('change', e => {
+            state.secCur = e.target.value;
+            const curBase = state.apiRates[state.secCur] || 1;
+            const sleBase = state.apiRates.SLE || 22.85;
+            state.unitRate = +(sleBase / curBase).toFixed(4);
+            saveLocal();
+            updateGlobalData();
+        });
+
+        $('inBenchBase').addEventListener('input', e => {
+            const v = parseFloat(e.target.value);
+            if(v > 0) { state.benchBase = v; saveLocal(); updateGlobalData(); }
+        });
+
+        $('inBenchSLE').addEventListener('input', e => {
+            const v = parseFloat(e.target.value);
+            if(v > 0 && state.benchBase > 0) { 
+                state.unitRate = v / state.benchBase; 
+                saveLocal(); updateGlobalData(); 
+            }
+        });
+
+        // --- Initialization ---
+        loadLocal();
+        renderTheme();
+        updateGlobalData();
+        fetchRates();
+        setInterval(fetchRates, 15 * 60 * 1000); // 15m background sync
+
+    </script>
+</body>
+</html>
